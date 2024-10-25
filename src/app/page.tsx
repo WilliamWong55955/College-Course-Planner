@@ -1,5 +1,5 @@
 import { db } from "~/server/db";
-//import Link from "next/link";
+import { posts } from "~/server/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +15,19 @@ const mockImages = mockUrls.map((url, index) => ({
   url,
 }));
 
-export default function HomePage() {
+export default async function HomePage() {
+  const postsData = await db.select().from(posts);
+
+  console.log(postsData);
+
   return (
     <main className="">
       <div className="flex flex-wrap gap-4">
-        {[...mockImages, ...mockImages, ...mockImages, ...mockImages, ...mockImages,].map((image) => (
-          <div key={image.id} className="w-48">
+        {postsData.map((post) => (
+          <div key = {post.id}>{post.name}</div>
+        )) }
+        {[...mockImages, ...mockImages, ...mockImages, ...mockImages, ...mockImages,].map((image, index) => (
+          <div key={image.id + "-" + index} className="w-48">
             <img src={image.url} alt={`image-${image.id}`} />
           </div>
         ))}
