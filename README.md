@@ -5,13 +5,22 @@
  Tidy up build process x
  Actually set up a database (vercel postgres) x
  Attach database to UI x
- Add authentication (w/ clerk)
- Add image upload
- "taint" (server-only)W
- Use Next/Image component
+
+ Add authentication (w/ clerk) O
+ Add image upload O
+////////////////////
+ "taint" (server-only)
+////////////////////
+ Use Next/Image component O
+////////////////////
  Error management (w/ Sentry)
- Routing/image page (parallel route)
- Update upload button Sto be less cringe
- Analytics (posthog)
- Delete button (w/ Server Actions)
- Ratelimiting (upstash)
+////////////////////
+ Routing/image page (parallel route) O
+ Update upload button Sto be less cringe O
+ Analytics (posthog) O
+ Delete button (w/ Server Actions) O
+ Ratelimiting (upstash) O
+
+ do next:
+"taint" (server-only)
+Error management (w/ Sentry)

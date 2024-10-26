@@ -1,15 +1,12 @@
 import { db } from "~/server/db";
 import { images } from "~/server/db/schema";
 import { desc } from "drizzle-orm/expressions";
+import { getImages } from "~/server/db/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const imagesData = await db
-    .select()
-    .from(images)
-    .orderBy(desc(images.id));
-
+  const imagesData = await getImages(); // Correct the variable name here
   return (
     <main className="">
       <div className="flex flex-wrap gap-4">
