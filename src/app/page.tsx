@@ -99,6 +99,9 @@ export default function HomePage() {
     <p className="text-center">professors options w/ RMP</p>
     {/* Add any input or content here */}
   </div>
+  <div> 
+    <p>will was here</p>
+  </div>
 </div>
 
     </main>
