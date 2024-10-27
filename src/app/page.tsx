@@ -90,13 +90,13 @@ export default function HomePage() {
 
   {/* Right Box 1 */}
   <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3 ml-4"> {/* Add margin-left for spacing */}
-    <p className="text-center">Right Box 1</p>
+    <p className="text-center">Class Schedule</p>
     {/* Add any input or content here */}
   </div>
 
   {/* Right Box 2 */}
   <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3 ml-4"> {/* Add margin-left for spacing */}
-    <p className="text-center">Right Box 2</p>
+    <p className="text-center">professors options w/ RMP</p>
     {/* Add any input or content here */}
   </div>
 </div>
