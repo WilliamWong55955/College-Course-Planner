@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-body{
-    @apply bg-black text-white;
+body {
+    @apply bg-gradient-to-r from-purple-500 via-blue-500 to-purple-600;;
+    font-size: 18px; /* Sets the default font size to 18px */
 }
+
+p {
+    font-size: 18px; /* Optional: explicitly sets paragraph font size, if different from body */
+}
+
+h1 {
+    font-size: 2rem; /* Example for heading 1 */
+}
+
+h2 {
+    font-size: 1.5rem; /* Example for heading 2 */
+}
+
+/* You can add more styles for other elements as needed */
