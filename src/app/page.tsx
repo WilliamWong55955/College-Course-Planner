@@ -1,4 +1,5 @@
 "use client"; // Add this directive at the top
+import React from 'react';
 
 import { useState } from 'react';
 // import other necessary modules
@@ -63,7 +64,6 @@ export default function HomePage() {
           {selectedMajor && <p className="mt-4">You selected: {selectedMajor}</p>}
         </div>
       </div>
-
     </main>
   );
 }
