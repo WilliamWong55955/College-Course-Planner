@@ -100,7 +100,11 @@ export default function HomePage() {
     {/* Add any input or content here */}
   </div>
 </div>
-
+<div>
+  <p>
+    Harry is awesome
+  </p>
+</div>
 
     </main>
   );
