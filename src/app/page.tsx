@@ -64,42 +64,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Box for "Enter in the most recent classes" */}
-      <div className="bg-gray-100 p-12 rounded-lg shadow-md mb-8 w-3/4">
-        <p className="text-center">{`Enter your most recent classes`}</p>
-        <input 
-          type="text" 
-          placeholder="Class names..." 
-          className="mt-2 p-2 border border-gray-300 rounded w-full"
-        />
-      </div>
-      
-      <div className="bg-gray-100 p-12 rounded-lg shadow-md mb-16 w-3/4">
-        <p className="text-center">Tree diagram goes here eventually</p>
-      </div>
-      <div className="flex justify-between w-full px-10 mt-10"> {/* Flex container for three boxes */}
-  {/* Left Box for Preferred Units */}
-  <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3">
-    <p className="text-center">Preferred Units</p>
-    <input 
-      type="number" 
-      placeholder="Enter preferred units" 
-      className="mt-4 p-2 border border-gray-300 rounded w-full"
-    />
-  </div>
-
-  {/* Right Box 1 */}
-  <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3 ml-4"> {/* Add margin-left for spacing */}
-    <p className="text-center">Class Schedule</p>
-    {/* Add any input or content here */}
-  </div>
-
-  {/* Right Box 2 */}
-  <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3 ml-4"> {/* Add margin-left for spacing */}
-    <p className="text-center">professors options w/ RMP</p>
-    {/* Add any input or content here */}
-  </div>
-</div>
     </main>
   );
 }
