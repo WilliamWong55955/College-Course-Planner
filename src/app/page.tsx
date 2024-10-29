@@ -101,7 +101,9 @@ export default function HomePage() {
   </div>
 </div>
 <div>
-  
+  <p>
+    harry is awesome
+  </p>
 </div>
 
     </main>
