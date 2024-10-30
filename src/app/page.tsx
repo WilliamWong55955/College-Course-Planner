@@ -1,12 +1,33 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { db } from "~/server/db";
+import { courses } from '~/server/db/schema';
+import { type Course } from "~/server/db/types";
 
 export default function HomePage() {
   const [isOpen, setIsOpen] = useState<boolean>(false); // Dropdown open state
   const [selectedMajor, setSelectedMajor] = useState<string>(''); // Selected major state
   const [boxHeight, setBoxHeight] = useState(400); // Dynamic height for the boxes
+  const [courseData, setCourseData] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  // Fetch course data when the component mounts
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/api/courses'); // Fetch from the API route
+        if (!response.ok) throw new Error("Failed to fetch courses");
 
+        const data = (await response.json()) as Course[];
+        setCourseData(data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchCourses();
+  }, []);
   // Toggle dropdown open/close state
   const toggleDropdown = () => {
     setIsOpen(prevState => !prevState);
@@ -25,7 +46,24 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-col items-center pt-10 space-y-8">
-      {/* Major selection box */}
+      {loading ? (
+        <p>Loading courses...</p>
+      ) : (
+        <div className="flex flex-wrap gap-4">
+          {courseData.length === 0 ? (
+            <p>No courses available.</p>
+          ) : (
+            courseData.map(course => (
+              <div key={course.id} className="p-4 border rounded shadow">
+                <h2>{course.course_name}</h2>
+                <p>Code: {course.course_code}</p>
+                <p>Units: {course.units}</p>
+                <p>Department: {course.department ?? "N/A"}</p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
       <div className="bg-gray-100 p-12 rounded-lg shadow-md w-3/4">
         <div className="flex flex-col items-center">
           <p className="text-center">{"What's your major?"}</p>
