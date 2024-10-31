@@ -37,17 +37,21 @@ export const images = createTable(
   })
 );
 
-export const majors = createTable("majors", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  department: varchar("department", { length: 255 }),
-});
-
-export const courses = createTable("courses", {
+export const courses = createTable(
+  "courses", {
   id: serial("id").primaryKey(),
   course_code: varchar("course_code", { length: 20 }).notNull(),
   course_name: varchar("course_name", { length: 255 }).notNull(),
   units: integer("units").notNull(),
+  department: varchar("department", { length: 255 }),
+});
+
+
+export const majors = createTable(
+  "majors", 
+  {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
   department: varchar("department", { length: 255 }),
 });
 
