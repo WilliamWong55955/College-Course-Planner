@@ -1,6 +1,5 @@
 import "server-only";
 import { db } from "~/server/db";
-import { desc } from "drizzle-orm/expressions";
 import { courses} from "~/server/db/schema" // add roadmap later
 import { type Course } from "~/server/db/types" 
 

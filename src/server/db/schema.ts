@@ -1,12 +1,10 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
-import { sql } from "drizzle-orm";
+// import { sql } from "drizzle-orm";
 import {
-  index,
   pgTableCreator,
   serial,
-  timestamp,
   varchar,
   integer,
 } from "drizzle-orm/pg-core";
@@ -34,7 +32,7 @@ export const majors = createTable(
   {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  department: varchar("department", { length: 255 }),
+  department: varchar("prefix code", { length: 255 }),
 });
 
 export const requirements = createTable("requirements", {

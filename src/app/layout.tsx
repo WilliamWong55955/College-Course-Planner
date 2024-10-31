@@ -14,7 +14,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${GeistSans.variable} flex flex-col gap-4`}>
-        <h1 className="text-center text-2xl font-bold mt-4">College Course Planner</h1> {/* Centered text */}
+      <div className="flex justify-center mt-4">
+  <h1 className="text-2xl font-bold text-white bg-gray-800 px-3 py-1 border border-white-600 rounded-md inline-block">
+    College Course Planner
+  </h1>
+</div>
+      {/* Centered text */}
         <hr className="border-t border-gray-300 mt-2" /> {/* Horizontal line for separation */}
         {children}
       </body>
