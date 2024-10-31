@@ -1,6 +1,26 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { db } from "~/server/db";
+import { courses } from '~/server/db/schema';
+import { type Course } from "~/server/db/types";
+
+export class Semester {
+  classes: string[];
+
+  constructor() {
+    this.classes = [];
+  }
+
+  addClass(className: string) {
+    if (!this.classes.includes(className)) {
+      this.classes.push(className);
+    }
+  }
+  removeClass(className: string) {
+    this.classes = this.classes.filter(cls => cls !== className);
+  }
+}
+
 
 export default function HomePage() {
   const [isOpen, setIsOpen] = useState<boolean>(false); // Dropdown open state
@@ -8,29 +28,27 @@ export default function HomePage() {
   const [boxHeight, setBoxHeight] = useState(750); // Dynamic height for the boxes
   const [availableClasses, setAvailableClasses] = useState<string[]>(["MATH 324", "CSC 340", "CSC 317", "MATH 130", "CSC 300GW", "CSC 110C"]); // Available classes
   const [recommendedClasses, setRecommendedClasses] = useState<string[]>([  "MATH 324", "CSC 340", "CSC 317", "MATH 130", "CSC 300GW", "CSC 110C"  ]); // Store  classes for roadmap
-  
-
-
-  class Semester {
-    classes: string[];
-  
-    constructor() {
-      this.classes = [];
-    }
-  
-    addClass(className: string) {
-      if (!this.classes.includes(className)) {
-        this.classes.push(className);
-      }
-    }
-    removeClass(className: string) {
-      this.classes = this.classes.filter(cls => cls !== className);
-    }
-  }
-
   const [semesters, setSemesters] = useState<Semester[]>([new Semester()]); // Initial state
   const [currentSemesterIndex, setCurrentSemesterIndex] = useState<number>(0); // Set to 0 for the first semester
+  const [courseData, setCourseData] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  // Fetch course data when the component mounts
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/api/courses'); // Fetch from the API route
+        if (!response.ok) throw new Error("Failed to fetch courses");
+        const data = (await response.json()) as Course[];
+        setCourseData(data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    void fetchCourses();
+  }, []);
   // Toggle dropdown open/close state
   const toggleDropdown = () => {
     setIsOpen(prevState => !prevState);
@@ -197,11 +215,31 @@ export default function HomePage() {
     }
   };
 
-
+ {/* return starts here */}
   return (
     <main className="flex flex-col items-center pt-10 space-y-8">
       {/* Major selection box */}
       <div className="bg-gray-100 p-12 rounded-lg shadow-md" style={{ width: '500px' }} >
+      {loading ? (
+        <p>Loading courses...</p>
+      ) : (
+        <div className="flex flex-wrap gap-4">
+          {courseData.length === 0 ? (
+            <p>No courses available.</p>
+          ) : (
+            courseData.map(course => (
+              <div key={course.id} className="p-4 border rounded shadow">
+                <h2>{course.course_name}</h2>
+                <p>Code: {course.course_code}</p>
+                <p>Units: {course.units}</p>
+                <p>Department: {course.department ?? "N/A"}</p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+      </div>
+      <div className="bg-gray-100 p-12 rounded-lg shadow-md w-3/4">
         <div className="flex flex-col items-center">
           <p className="text-center">{"What's your major?"}</p>
 
