@@ -15,7 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${GeistSans.variable} flex flex-col gap-4`}>
       <div className="flex justify-center mt-4">
-  <h1 className="text-2xl font-bold text-white bg-gray-800 px-3 py-1 border border-white-600 rounded-md inline-block">
+  <h1 className="text-2xl font-bold text-black px-3 py-1 border border-white-600 rounded-md inline-block">
     College Course Planner
   </h1>
 </div>

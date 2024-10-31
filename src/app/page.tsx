@@ -1,351 +1,319 @@
-"use client";
-import React, { useEffect, useState } from 'react';
-import { db } from "~/server/db";
-import { courses } from '~/server/db/schema';
-import { type Course } from "~/server/db/types";
+"use client"
 
-export class Semester {
-  classes: string[];
+import React, { useState, useRef } from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { PlusCircle, MinusCircle, Edit2 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
-  constructor() {
-    this.classes = [];
-  }
+// Mock data
+const majors = [
+  { id: 'cs', name: 'Computer Science' },
+  { id: 'ee', name: 'Electrical Engineering' },
+]
 
-  addClass(className: string) {
-    if (!this.classes.includes(className)) {
-      this.classes.push(className);
-    }
-  }
-  removeClass(className: string) {
-    this.classes = this.classes.filter(cls => cls !== className);
-  }
+const courses = {
+  cs: [
+    { id: 'cs101', name: 'Introduction to Programming' },
+    { id: 'cs201', name: 'Data Structures' },
+    { id: 'cs301', name: 'Algorithms' },
+    { id: 'cs401', name: 'Database Systems' },
+    { id: 'cs501', name: 'Artificial Intelligence' },
+  ],
+  ee: [
+    { id: 'ee101', name: 'Circuit Analysis' },
+    { id: 'ee201', name: 'Digital Logic Design' },
+    { id: 'ee301', name: 'Signals and Systems' },
+    { id: 'ee401', name: 'Electromagnetic Fields' },
+    { id: 'ee501', name: 'Control Systems' },
+  ],
 }
 
+const recommendedRoadmap = {
+  cs: [
+    { semester: 1, courses: ['cs101'] },
+    { semester: 2, courses: ['cs201'] },
+    { semester: 3, courses: ['cs301', 'cs401'] },
+    { semester: 4, courses: ['cs501'] },
+  ],
+  ee: [
+    { semester: 1, courses: ['ee101'] },
+    { semester: 2, courses: ['ee201'] },
+    { semester: 3, courses: ['ee301', 'ee401'] },
+    { semester: 4, courses: ['ee501'] },
+  ],
+}
 
-export default function HomePage() {
-  const [isOpen, setIsOpen] = useState<boolean>(false); // Dropdown open state
-  const [selectedMajor, setSelectedMajor] = useState<string>(''); // Selected major state
-  const [boxHeight, setBoxHeight] = useState(750); // Dynamic height for the boxes
-  const [availableClasses, setAvailableClasses] = useState<string[]>(["MATH 324", "CSC 340", "CSC 317", "MATH 130", "CSC 300GW", "CSC 110C"]); // Available classes
-  const [recommendedClasses, setRecommendedClasses] = useState<string[]>([  "MATH 324", "CSC 340", "CSC 317", "MATH 130", "CSC 300GW", "CSC 110C"  ]); // Store  classes for roadmap
-  const [semesters, setSemesters] = useState<Semester[]>([new Semester()]); // Initial state
-  const [currentSemesterIndex, setCurrentSemesterIndex] = useState<number>(0); // Set to 0 for the first semester
-  const [courseData, setCourseData] = useState<Course[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  // Fetch course data when the component mounts
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch('/api/courses'); // Fetch from the API route
-        if (!response.ok) throw new Error("Failed to fetch courses");
-        const data = (await response.json()) as Course[];
-        setCourseData(data);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-      } finally {
-        setLoading(false);
+type Course = { id: string; name: string }
+type Semester = { id: string; name: string; courses: Course[] }
+
+const semesterSuggestions = [
+  'Fall 2024', 'Winter 2024', 'Spring 2025', 'Summer 2025',
+  'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026'
+]
+
+export default function Component() {
+  const [selectedMajor, setSelectedMajor] = useState<string | undefined>()
+  const [semesters, setSemesters] = useState<Semester[]>([
+    { id: 'semester1', name: '', courses: [] },
+    { id: 'semester2', name: '', courses: [] },
+    { id: 'semester3', name: '', courses: [] },
+    { id: 'semester4', name: '', courses: [] },
+  ])
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([])
+  const [completedCourses, setCompletedCourses] = useState<Course[]>([])
+  const draggedCourse = useRef<{ course: Course, source: string } | null>(null)
+
+  const handleMajorChange = (majorId: string) => {
+    setSelectedMajor(majorId)
+    setAvailableCourses(courses[majorId as keyof typeof courses])
+    setCompletedCourses([])
+    setSemesters([
+      { id: 'semester1', name: '', courses: [] },
+      { id: 'semester2', name: '', courses: [] },
+      { id: 'semester3', name: '', courses: [] },
+      { id: 'semester4', name: '', courses: [] },
+    ])
+  }
+
+  const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
+    draggedCourse.current = { course, source }
+    e.dataTransfer.setData('text/plain', course.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
+    e.preventDefault()
+    if (draggedCourse.current) {
+      const { course, source } = draggedCourse.current
+
+      if (source === targetId) return
+
+      // Remove course from source
+      if (source === 'availableCourses') {
+        setAvailableCourses(prev => prev.filter(c => c.id !== course.id))
+      } else if (source === 'completedCourses') {
+        setCompletedCourses(prev => prev.filter(c => c.id !== course.id))
+      } else {
+        setSemesters(prev => prev.map(sem => 
+          sem.id === source ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
+        ))
       }
-    };
 
-    void fetchCourses();
-  }, []);
-  // Toggle dropdown open/close state
-  const toggleDropdown = () => {
-    setIsOpen(prevState => !prevState);
-  };
+      // Add course to target
+      if (targetId === 'availableCourses') {
+        setAvailableCourses(prev => [...prev, course])
+      } else if (targetId === 'completedCourses') {
+        setCompletedCourses(prev => [...prev, course])
+      } else {
+        setSemesters(prev => prev.map(sem => 
+          sem.id === targetId ? { ...sem, courses: [...sem.courses, course] } : sem
+        ))
+      }
 
-  // Handle major selection and close the dropdown
-  const handleMajorSelect = (major: string) => {
-    setSelectedMajor(major);
-    setIsOpen(false);
-  };
+      draggedCourse.current = null
+    }
+  }
 
-  // Increment/ decrement box height by a specified amount
-  const incrementHeight = (incrementAmount: number) => {
-    setBoxHeight(prevHeight => prevHeight + incrementAmount);
-  };
-
-  const decrementHeight = (decrementAmount: number) => {
-    setBoxHeight(prevHeight => prevHeight - decrementAmount);
-  };
-
-  // Handle drag start
-  const handleDragStart = (event: React.DragEvent<HTMLLIElement>, className: string) => {
-    event.dataTransfer.setData("text/plain", className); // Store the class name to be dragged
-  };
-
-    // Allow dropping by preventing default behavior
-  const handleDragOver = (event: React.DragEvent<HTMLUListElement>) => {
-    event.preventDefault();
-  };
+  const handleCourseClick = (course: Course, semesterId: string) => {
+    setSemesters(prev => prev.map(sem => 
+      sem.id === semesterId ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
+    ))
+    setAvailableCourses(prev => [...prev, course])
+  }
 
   const addSemester = () => {
-    const newSemester = new Semester(); // Create a new Semester instance
-    setSemesters(prevSemesters => [...prevSemesters, newSemester]); // Add the new instance to semesters
-    setCurrentSemesterIndex(semesters.length); // Update the current semester index
-  };
-  
-  
-  const deleteSemester = (index: number) => {
-    setSemesters(prevSemesters => {
-      // Get the classes from the semester to be deleted
-      const classesToReturn = prevSemesters[index].classes;
-      
-      // console.log("Deleting semester index:", index);
-      // console.log("Current semester index before deletion:", currentSemesterIndex);
+    setSemesters(prev => [...prev, { id: `semester${prev.length + 1}`, name: '', courses: [] }])
+  }
 
-
-      // Return the updated semesters without the deleted one
-      const updatedSemesters = prevSemesters.filter((_, i) => i !== index);
-
-      // Return the classes back to available classes
-      setAvailableClasses(prevClasses => {
-        const uniqueClasses = classesToReturn.filter(cls => !prevClasses.includes(cls)); // Only keep unique classes
-        return [...prevClasses, ...uniqueClasses]; // Return the updated available classes
-      });
-      
-        if (updatedSemesters.length > 0){
-          setCurrentSemesterIndex(updatedSemesters.length - 1 );
-        }else{
-          setCurrentSemesterIndex(-1)
-        }
-
-      // console.log("Current index after deletion:", index);
-      // console.log("Current semester index after deletion:", currentSemesterIndex);
-      // console.log("Updated semesters after deletion:", updatedSemesters);
-
-      return updatedSemesters; // Return updated semesters
-    });
-  };
-  
-  // Handle drop into user's schedule from available classes
-  const handleDropToSelectedSemester = (event: React.DragEvent<HTMLDivElement>, semesterIndex: number) => {
-    event.preventDefault();
-    const className = event.dataTransfer.getData("text/plain");
-  
-    if (semesterIndex >= 0 && semesterIndex < semesters.length) {
-      if (availableClasses.includes(className)) {
-        setAvailableClasses(prevClasses => prevClasses.filter(cls => cls !== className));
-        setSemesters(prevSemesters => {
-          const updatedSemesters = [...prevSemesters];
-          updatedSemesters[semesterIndex].addClass(className); // Use the class method
-          
-          return updatedSemesters;
-        });
-      }else{
-
-
-          // for (let i = 0; i < semesters.length; i++) {
-          //   for (let j = 0; i < semesters.length; i++) {
-          //     if(semesters[i][j] === className)
-          //   }
-          // }
-          setSemesters(prevSemesters => {
-            return prevSemesters.map((semester, index) => {
-              if (index === semesterIndex) {
-                // If it's the target semester, add the class
-                const updatedSemester = new Semester(); // Create a new instance for the updated semester
-                updatedSemester.classes = [...semester.classes, className]; // Add the class
-                return updatedSemester; // Return the updated semester
-              } else {
-                // If it's not the target semester, remove the class if it exists
-                const updatedSemester = new Semester(); // Create a new instance for the semester
-                updatedSemester.classes = semester.classes.filter(cls => cls !== className); // Remove the class
-                return updatedSemester; // Return the updated semester
-              }
-            });
-          });
-        }
-      }
-  };
-  
-  
-  // Handle drop back to available classes
-  const handleDropToAvailable = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const className = event.dataTransfer.getData("text/plain"); // Get the class name from the drag data
-
-    if (!availableClasses.includes(className)) {
-      setAvailableClasses(prevClasses => [...prevClasses, className]); // Add class to available classes
-      setSemesters(prevSemesters => {
-        return prevSemesters.map(semester => ({
-          ...semester,
-          classes: semester.classes.filter(cls => cls !== className) // Remove class from each semester
-        }));
-      });
-    } else {
-      console.warn(`Class "${className}" is already in the available classes.`);
+  const removeSemester = () => {
+    if (semesters.length > 1) {
+      const lastSemester = semesters[semesters.length - 1]!;
+      setAvailableCourses(prev => [...prev, ...lastSemester.courses])
+      setSemesters(prev => prev.slice(0, -1))
     }
-  };
+  }
 
-  //AFTER DRAGGING CLASSES FROM CLASS BANK TO CLASS BANK< THINGS BREAK
+  const renameSemester = (semesterId: string, newName: string) => {
+    setSemesters(prev => prev.map(sem => 
+      sem.id === semesterId ? { ...sem, name: newName } : sem
+    ))
+  }
 
-  // Add selected class from schedule back to available classes and remove it from schedule
-  const addClassToAvailable = (className: string, semesterIndex: number) => {
-    setSemesters(prevSemesters => {
-      const updatedSemesters = [...prevSemesters];
-      updatedSemesters[semesterIndex].removeClass(className); // Use the class method
-      return updatedSemesters;
-    });
-    
-    // Add the class back to available classes only if it doesn't already exist
-    setAvailableClasses(prevClasses => {
-      if (!prevClasses.includes(className)) {
-        return [...prevClasses, className];
-      }
-      return prevClasses; // Return previous state if the class already exists
-    });
-  };
-  
-  // Add selected class to the schedule and remove it from available classes
-  const addClassToSchedule = (className: string) => {
-    if (semesters.length === 0) {
-      // If no semesters exist, create a new one
-      addSemester(); // Call the function to add a new semester
-    }
-    
-
-    if (currentSemesterIndex >= 0 && currentSemesterIndex < semesters.length) { // Ensure a current semester is selected
-      setSemesters(prevSemesters => {
-        const updatedSemesters = [...prevSemesters];
-        updatedSemesters[currentSemesterIndex].addClass(className); // Add to the current semester
-        return updatedSemesters;
-      });
-      setAvailableClasses(prevClasses => prevClasses.filter(cls => cls !== className)); // Remove selected class
-    }
-  };
-
- {/* return starts here */}
   return (
-    <main className="flex flex-col items-center pt-10 space-y-8">
-      {/* Major selection box */}
-      <div className="bg-gray-100 p-12 rounded-lg shadow-md" style={{ width: '500px' }} >
-      {loading ? (
-        <p>Loading courses...</p>
-      ) : (
-        <div className="flex flex-wrap gap-4">
-          {courseData.length === 0 ? (
-            <p>No courses available.</p>
-          ) : (
-            courseData.map(course => (
-              <div key={course.id} className="p-4 border rounded shadow">
-                <h2>{course.course_name}</h2>
-                <p>Code: {course.course_code}</p>
-                <p>Units: {course.units}</p>
-                <p>Department: {course.department ?? "N/A"}</p>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-      </div>
-      <div className="bg-gray-100 p-12 rounded-lg shadow-md w-3/4">
-        <div className="flex flex-col items-center">
-          <p className="text-center">{"What's your major?"}</p>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Course Planner</h1>
+      <Select onValueChange={handleMajorChange}>
+        <SelectTrigger className="w-[180px] mb-4">
+          <SelectValue placeholder="Select your major" />
+        </SelectTrigger>
+        <SelectContent>
+          {majors.map((major) => (
+            <SelectItem key={major.id} value={major.id}>{major.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-          {/* Dropdown Menu */}
-          <div className="relative mt-4">
-
-            {/* Button to select major */}
-            <button onClick={toggleDropdown} className="bg-blue-500 text-white px-4 py-2 rounded">
-              {selectedMajor || "Select Major"}
-            </button>
-
-            {isOpen && (
-              <ul className="absolute bg-white shadow-md mt-1 rounded border border-gray-300 z-10 w-full">
-                {["Computer Science", "Business Administration", "Biology"].map(major => (
-                  <li key={major} className="p-2 hover:bg-gray-200 cursor-pointer" onClick={() => handleMajorSelect(major)}>
-                    {major}
-                  </li>
+      {selectedMajor && (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Your Course Plan</h2>
+            <div className="space-x-2">
+              <Button onClick={addSemester} size="sm">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Semester
+              </Button>
+              <Button onClick={removeSemester} size="sm" variant="outline" disabled={semesters.length <= 1}>
+                <MinusCircle className="mr-2 h-4 w-4" />
+                Remove Semester
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                {semesters.map((semester, index) => (
+                  <div
+                    key={semester.id}
+                    onDragOver={onDragOver}
+                    onDrop={(e) => onDrop(e, semester.id)}
+                    className="mb-4 p-2 bg-secondary rounded"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-semibold">
+                        {semester.name || `Semester ${index + 1}`}
+                      </h3>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-medium leading-none">Rename Semester</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Enter a new name or select from suggestions.
+                              </p>
+                            </div>
+                            <div className="grid gap-2">
+                              <Input
+                                id={`rename-${semester.id}`}
+                                defaultValue={semester.name}
+                                onChange={(e) => renameSemester(semester.id, e.target.value)}
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                {semesterSuggestions.slice(0, 4).map((suggestion) => (
+                                  <Button
+                                    key={suggestion}
+                                    variant="outline"
+                                    size="sm"
+                                    className="justify-start"
+                                    onClick={() => renameSemester(semester.id, suggestion)}
+                                  >
+                                    {suggestion}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {semester.courses.map((course) => (
+                      <div
+                        key={course.id}
+                        draggable
+                        onDragStart={(e) => onDragStart(e, course, semester.id)}
+                        onClick={() => handleCourseClick(course, semester.id)}
+                        className="bg-background p-2 mb-2 rounded cursor-move hover:bg-accent"
+                      >
+                        {course.name}
+                      </div>
+                    ))}
+                  </div>
                 ))}
-              </ul>
-            )}
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Recommended Roadmap</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recommendedRoadmap[selectedMajor as keyof typeof recommendedRoadmap].map((semester) => (
+                  <div key={semester.semester} className="mb-4">
+                    <h3 className="font-semibold mb-2">Semester {semester.semester}</h3>
+                    <ul className="list-disc pl-5">
+                      {semester.courses.map((courseId) => (
+                        <li key={courseId}>
+                          {courses[selectedMajor as keyof typeof courses].find(c => c.id === courseId)?.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </div>
 
-      {/* Side-by-Side Boxes with Shared Height */}
-      <div className="flex space-x-4" style={{ width: '1000px' }}>        
-
-        {/* Left hand side boxes and elements*/}
-        <div className="bg-gray-100 p-12 rounded-lg shadow-md w-1/2 flex flex-col items-center" style={{ height: `${boxHeight}px` }}>
-          
-          {/* Box for "your Schedule"*/}
-          <div className="bg-gray-100 p-4 rounded-lg w-1/2 flex flex-row flex-col items-center" style={{ width: '80%', height: '80px' }}>
-            <p>Your Schedule:</p>
-          </div>
-          
-          {/* user schedule box : semester edition */}
-          <div className="flex flex-wrap justify-center" style={{ width: '100%' }}>
-
-            {/* display array of semester boxes */}
-            {semesters.map((semester, index) => (
-              <div key={index} className="bg-gray-100 p-4 rounded-lg shadow-md mb-4" style={{ width: '90%' }} 
-              onDragOver={ handleDragOver} onDrop={(event) => handleDropToSelectedSemester(event, index)}>
-                <h3 className="font-bold">{`Semester ${index + 1}`}</h3>
-
-
-                {/* wich with their own classes */}
-                <ul className="mt-2 flex flex-wrap justify-center">
-                  {semester.classes.map((className, classIndex) => (
-                    <li key={classIndex} className="text-center mx-2" draggable 
-                      onDragStart={(event) => handleDragStart(event, className)} onClick={() => addClassToAvailable(className, index)}>
-                      {className}
-                    </li>))}
-                </ul>
-
-                <button onClick={() => deleteSemester(index)} className="mt-2 bg-red-500 text-white px-4 py-2 rounded">
-                  Delete Semester
-                </button>
-
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Available Courses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div 
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
+                onDragOver={onDragOver}
+                onDrop={(e) => onDrop(e, 'availableCourses')}
+              >
+                {availableCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
+                    className="bg-secondary p-2 rounded cursor-move"
+                  >
+                    {course.name}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
 
-          <button onClick={() => addSemester()} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
-            Add Semester
-          </button>
-
-          {/* Available classes box */}
-
-
-          <h3 className="font-bold">Available Classes:</h3>
-
-          <div className="bg-gray-100 p-4 rounded-lg shadow-md" style={{ width: '80%'}} onDragOver={handleDragOver}
-          onDrop={handleDropToAvailable}>
-            <ul className="mt-2 flex flex-wrap justify-center">
-              {availableClasses.map((className, index) => (
-                <li key={index} className="text-center mx-2" draggable onDragStart={(event) => handleDragStart(event, className)} onClick={() => addClassToSchedule(className)}
-                  >  
-                  {className}
-                </li>))}
-            </ul>
-          </div>
-
-
-        </div>
-
-          {/* Right Box */}
-          <div className="bg-gray-100 p-12 rounded-lg shadow-md w-1/2 flex flex-col items-center" style={{ height: `${boxHeight}px` }}>
-            
-          {/* Box for "Recommended"*/}
-          <div className="bg-gray-100 p-4 rounded-lg w-1/2 flex flex-row flex-col items-center" style={{ width: '80%', height: '80px' }}>
-            <p>Recommended Schedule for:</p>
-            <p>{selectedMajor}</p>
-          </div>
-
-          <div className="bg-gray-100 p-4 rounded-lg shadow-md" style={{ width: '80%'}} >
-            <ul className="mt-2 flex flex-wrap justify-center">
-              {recommendedClasses.map((className, index) => (
-                <li key={index} className="text-center mx-2" >  
-                  {className}
-                </li>))}
-            </ul>
-          </div>
-        </div>
-
-      </div>
-    </main>
-  );
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Completed Courses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div 
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
+                onDragOver={onDragOver}
+                onDrop={(e) => onDrop(e, 'completedCourses')}
+              >
+                {completedCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, course, 'completedCourses')}
+                    className="bg-secondary p-2 rounded cursor-move"
+                  >
+                    {course.name}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  )
 }
