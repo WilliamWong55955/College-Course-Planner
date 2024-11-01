@@ -8,50 +8,31 @@ import { Input } from "~/components/ui/input"
 import { PlusCircle, MinusCircle, Edit2 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
-// Mock data
-const majors = [
-  { id: 'cs', name: 'Computer Science' },
-  { id: 'ee', name: 'Electrical Engineering' },
-]
-
-const courses = {
-  cs: [
-    { id: 'cs101', name: 'Introduction to Programming' },
-    { id: 'cs201', name: 'Data Structures' },
-    { id: 'cs301', name: 'Algorithms' },
-    { id: 'cs401', name: 'Database Systems' },
-    { id: 'cs501', name: 'Artificial Intelligence' },
-  ],
-  ee: [
-    { id: 'ee101', name: 'Circuit Analysis' },
-    { id: 'ee201', name: 'Digital Logic Design' },
-    { id: 'ee301', name: 'Signals and Systems' },
-    { id: 'ee401', name: 'Electromagnetic Fields' },
-    { id: 'ee501', name: 'Control Systems' },
-  ],
+type Course = {
+  id: string;
+  course_name: string;
+  course_code: string;
+  units: number;
+  department?: string;
 }
 
-const recommendedRoadmap = {
-  cs: [
-    { semester: 1, courses: ['cs101'] },
-    { semester: 2, courses: ['cs201'] },
-    { semester: 3, courses: ['cs301', 'cs401'] },
-    { semester: 4, courses: ['cs501'] },
-  ],
-  ee: [
-    { semester: 1, courses: ['ee101'] },
-    { semester: 2, courses: ['ee201'] },
-    { semester: 3, courses: ['ee301', 'ee401'] },
-    { semester: 4, courses: ['ee501'] },
-  ],
-}
-
-type Course = { id: string; name: string }
 type Semester = { id: string; name: string; courses: Course[] }
 
 const semesterSuggestions = [
-  'Fall 2024', 'Winter 2024', 'Spring 2025', 'Summer 2025',
-  'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026'
+  'Fall 2024', 'Spring 2025', 'Summer 2025',
+  'Fall 2025', 'Spring 2026', 'Summer 2026'
+]
+
+// Placeholder recommended schedule
+const recommendedSchedule = [
+  { semester: 1, courses: ['MATH101', 'PHYS101', 'CHEM101', 'ENG101', 'CS101'] },
+  { semester: 2, courses: ['MATH102', 'PHYS102', 'CHEM102', 'CS102', 'HIST101'] },
+  { semester: 3, courses: ['MATH201', 'CS201', 'ECON101', 'PHIL101', 'ART101'] },
+  { semester: 4, courses: ['MATH202', 'CS202', 'ECON102', 'PSYCH101', 'LANG101'] },
+  { semester: 5, courses: ['CS301', 'CS302', 'STAT201', 'BIO101', 'LANG102'] },
+  { semester: 6, courses: ['CS303', 'CS304', 'STAT202', 'BIO102', 'MUSIC101'] },
+  { semester: 7, courses: ['CS401', 'CS402', 'PROJ401', 'ENVS101', 'POLI101'] },
+  { semester: 8, courses: ['CS403', 'CS404', 'PROJ402', 'ENVS102', 'SOC101'] },
 ]
 
 export default function Component() {
@@ -66,9 +47,48 @@ export default function Component() {
   const [completedCourses, setCompletedCourses] = useState<Course[]>([])
   const draggedCourse = useRef<{ course: Course, source: string } | null>(null)
 
+  const [courseData, setCourseData] = useState<Course[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [majorsData, setMajorsData] = useState<{ id: number; name: string }[]>([])
+  const [loadingMajors, setLoadingMajors] = useState<boolean>(true)
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/api/courses')
+        if (!response.ok) throw new Error("Failed to fetch courses")
+        const data = await response.json() as Course[]
+        setCourseData(data)
+        setAvailableCourses(data)
+      } catch (error) {
+        console.error("Error fetching courses:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void fetchCourses()
+  }, [])
+
+  useEffect(() => {
+    const fetchMajors = async () => {
+      try {
+        const response = await fetch('/api/majors')
+        if (!response.ok) throw new Error("Failed to fetch majors")
+        const data = await response.json() as { id: number; name: string }[]
+        setMajorsData(data)
+      } catch (error) {
+        console.error("Error fetching majors:", error)
+      } finally {
+        setLoadingMajors(false)
+      }
+    }
+  
+    void fetchMajors()
+  }, [])
+
   const handleMajorChange = (majorId: string) => {
     setSelectedMajor(majorId)
-    setAvailableCourses(courses[majorId as keyof typeof courses])
     setCompletedCourses([])
     setSemesters([
       { id: 'semester1', name: '', courses: [] },
@@ -76,6 +96,7 @@ export default function Component() {
       { id: 'semester3', name: '', courses: [] },
       { id: 'semester4', name: '', courses: [] },
     ])
+    setAvailableCourses(courseData) // Reset available courses when changing major
   }
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
@@ -122,11 +143,16 @@ export default function Component() {
     }
   }
 
-  const handleCourseClick = (course: Course, semesterId: string) => {
-    setSemesters(prev => prev.map(sem => 
-      sem.id === semesterId ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
-    ))
-    setAvailableCourses(prev => [...prev, course])
+  const handleCourseClick = (course: Course, source: string) => {
+    if (source === 'completedCourses') {
+      setCompletedCourses(prev => prev.filter(c => c.id !== course.id))
+      setAvailableCourses(prev => [...prev, course])
+    } else if (source.startsWith('semester')) {
+      setSemesters(prev => prev.map(sem => 
+        sem.id === source ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
+      ))
+      setAvailableCourses(prev => [...prev, course])
+    }
   }
 
   const addSemester = () => {
@@ -147,223 +173,166 @@ export default function Component() {
     ))
   }
 
-const [courseData, setCourseData] = useState<Course[]>([]);
-const [loading, setLoading] = useState<boolean>(true);
-  // Fetch course data when the component mounts
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch('/api/courses'); // Fetch from the API route
-        if (!response.ok) throw new Error("Failed to fetch courses");
-        const data = (await response.json()) as Course[];
-        setCourseData(data);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchCourses();
-  }, []);
-
-const [majorsData, setMajorsData] = useState<{ id: number; name: string }[]>([]);
-const [loadingMajors, setLoadingMajors] = useState<boolean>(true);
-
-  // Fetch majors data when the component mounts
-  useEffect(() => {
-    const fetchMajors = async () => {
-      try {
-        const response = await fetch('/api/majors'); // API endpoint for majors data
-        if (!response.ok) throw new Error("Failed to fetch majors");
-        const data = (await response.json()) as { id: number; name: string }[];
-        setMajorsData(data);
-      } catch (error) {
-        console.error("Error fetching majors:", error);
-      } finally {
-        setLoadingMajors(false);
-      }
-    };
-  
-    void fetchMajors();
-  }, []);
-
-
   return (
     <div className="container mx-auto p-4">
-      {loading ? (
-        <p>Loading courses...</p>
-      ) : (
-        <div className="flex flex-wrap gap-4">
-          {courseData.length === 0 ? (
-            <p>No courses available.</p>
-          ) : (
-            courseData.map(course => (
-              <div key={course.id} className="p-4 border rounded shadow">
-                <h2>{course.course_name}</h2>
-                <p>Code: {course.course_code}</p>
-                <p>Units: {course.units}</p>
-                <p>Department: {course.department ?? "N/A"}</p>
-              </div>
-            ))
-          )}
-        </div>
-        )}
-        {loadingMajors ? (
-          <p>Loading majors...</p>
-        ) : (
-          <div className="flex flex-wrap gap-4">
-            {majorsData.length === 0 ? (
-              <p>No majors available.</p>
-            ) : (
-              majorsData.map(major => (
-                <div key={major.id} className="p-4 border rounded shadow">
-                  <h2>{major.name}</h2>
-                  <p>ID: {major.id}</p>
-                </div>
-              ))
-            )}
-          </div>
-        )}
       <h1 className="text-2xl font-bold mb-4">Course Planner</h1>
-      <Select onValueChange={handleMajorChange}>
-        <SelectTrigger className="w-[180px] mb-4">
-          <SelectValue placeholder="Select your major" />
-        </SelectTrigger>
-        <SelectContent>
-          {majors.map((major) => (
-            <SelectItem key={major.id} value={major.id}>{major.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      
+      {loadingMajors ? (
+        <p>Loading majors...</p>
+      ) : (
+        <Select onValueChange={handleMajorChange}>
+          <SelectTrigger className="w-[180px] mb-4">
+            <SelectValue placeholder="Select your major" />
+          </SelectTrigger>
+          <SelectContent>
+            {majorsData.map((major) => (
+              <SelectItem key={major.id} value={major.id.toString()}>{major.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {selectedMajor && (
         <>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Your Course Plan</h2>
-            <div className="space-x-2">
-              <Button onClick={addSemester} size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Semester
-              </Button>
-              <Button onClick={removeSemester} size="sm" variant="outline" disabled={semesters.length <= 1}>
-                <MinusCircle className="mr-2 h-4 w-4" />
-                Remove Semester
-              </Button>
-            </div>
-          </div>
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>Available Courses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p>Loading courses...</p>
+              ) : (
+                <div 
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
+                  onDragOver={onDragOver}
+                  onDrop={(e) => onDrop(e, 'availableCourses')}
+                >
+                  {availableCourses.map((course) => (
+                    <div
+                      key={course.id}
+                      draggable
+                      onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
+                      className="bg-secondary p-2 rounded cursor-move text-sm"
+                    >
+                      • {course.course_name} - {course.course_code}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
-              <CardContent className="p-4">
-                {semesters.map((semester, index) => (
-                  <div
-                    key={semester.id}
-                    onDragOver={onDragOver}
-                    onDrop={(e) => onDrop(e, semester.id)}
-                    className="mb-4 p-2 bg-secondary rounded"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold">
-                        {semester.name || `Semester ${index + 1}`}
-                      </h3>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                          <div className="grid gap-4">
-                            <div className="space-y-2">
-                              <h4 className="font-medium leading-none">Rename Semester</h4>
-                              <p className="text-sm text-muted-foreground">
-                                Enter a new name or select from suggestions.
-                              </p>
-                            </div>
-                            <div className="grid gap-2">
-                              <Input
-                                id={`rename-${semester.id}`}
-                                defaultValue={semester.name}
-                                onChange={(e) => renameSemester(semester.id, e.target.value)}
-                              />
-                              <div className="grid grid-cols-2 gap-2">
-                                {semesterSuggestions.slice(0, 4).map((suggestion) => (
-                                  <Button
-                                    key={suggestion}
-                                    variant="outline"
-                                    size="sm"
-                                    className="justify-start"
-                                    onClick={() => renameSemester(semester.id, suggestion)}
-                                  >
-                                    {suggestion}
-                                  </Button>
-                                ))}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle>Your Schedule</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Button onClick={addSemester} size="sm" variant="outline" className="h-8 px-2 lg:px-3">
+                    <PlusCircle className="h-4 w-4 lg:mr-2" />
+                    <span className="sr-only lg:not-sr-only">Add Semester</span>
+                  </Button>
+                  <Button onClick={removeSemester} size="sm" variant="outline" className="h-8 px-2 lg:px-3" disabled={semesters.length <= 1}>
+                    <MinusCircle className="h-4 w-4 lg:mr-2" />
+                    <span className="sr-only lg:not-sr-only">Remove Semester</span>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {semesters.map((semester, index) => (
+                    <div
+                      key={semester.id}
+                      onDragOver={onDragOver}
+                      onDrop={(e) => onDrop(e, semester.id)}
+                      className="bg-secondary p-2 pt-4 rounded-lg relative"
+                    >
+                      <div className="relative mb-2">
+                        <h3 className="font-semibold text-sm truncate pr-6 mb-1">
+                          {semester.name || `Semester ${index + 1}`}
+                        </h3>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-5 w-5 p-0 rounded-full absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                              <span className="sr-only">Edit semester name</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="grid gap-4">
+                              <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Rename Semester</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Enter a new name or select from suggestions.
+                                </p>
+                              </div>
+                              <div className="grid gap-2">
+                                <Input
+                                  id={`rename-${semester.id}`}
+                                  defaultValue={semester.name}
+                                  onChange={(e) => renameSemester(semester.id, e.target.value)}
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                  {semesterSuggestions.slice(0, 4).map((suggestion) => (
+                                    <Button
+                                      key={suggestion}
+                                      variant="outline"
+                                      size="sm"
+                                      className="justify-start"
+                                      onClick={() => renameSemester(semester.id, suggestion)}
+                                    >
+                                      {suggestion}
+                                    </Button>
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    {semester.courses.map((course) => (
-                      <div
-                        key={course.id}
-                        draggable
-                        onDragStart={(e) => onDragStart(e, course, semester.id)}
-                        onClick={() => handleCourseClick(course, semester.id)}
-                        className="bg-background p-2 mb-2 rounded cursor-move hover:bg-accent"
-                      >
-                        {course.name}
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                    ))}
-                  </div>
-                ))}
+                      <ul className="space-y-1">
+                        {semester.courses.map((course) => (
+                          <li
+                            key={course.id}
+                            draggable
+                            onDragStart={(e) => onDragStart(e, course, semester.id)}
+                            onClick={() => handleCourseClick(course, semester.id)}
+                            className="bg-background p-1 rounded cursor-move hover:bg-accent text-sm"
+                          >
+                            • {course.course_name} - {course.course_code}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Recommended Roadmap</CardTitle>
+                <CardTitle>Recommended Schedule</CardTitle>
               </CardHeader>
               <CardContent>
-                {recommendedRoadmap[selectedMajor as keyof typeof recommendedRoadmap].map((semester) => (
-                  <div key={semester.semester} className="mb-4">
-                    <h3 className="font-semibold mb-2">Semester {semester.semester}</h3>
-                    <ul className="list-disc pl-5">
-                      {semester.courses.map((courseId) => (
-                        <li key={courseId}>
-                          {courses[selectedMajor as keyof typeof courses].find(c => c.id === courseId)?.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {recommendedSchedule.map((semester) => (
+                    <div key={semester.semester} className="bg-secondary p-2 rounded-lg">
+                      <h3 className="font-semibold text-sm mb-1">Semester {semester.semester}</h3>
+                      <ul className="text-sm space-y-1">
+                        {semester.courses.map((course, index) => (
+                          <li key={index}>• {course}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              
               </CardContent>
             </Card>
           </div>
-
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Available Courses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div 
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
-                onDragOver={onDragOver}
-                onDrop={(e) => onDrop(e, 'availableCourses')}
-              >
-                {availableCourses.map((course) => (
-                  <div
-                    key={course.id}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
-                    className="bg-secondary p-2 rounded cursor-move"
-                  >
-                    {course.name}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
 
           <Card className="mt-4">
             <CardHeader>
@@ -380,14 +349,19 @@ const [loadingMajors, setLoadingMajors] = useState<boolean>(true);
                     key={course.id}
                     draggable
                     onDragStart={(e) => onDragStart(e, course, 'completedCourses')}
-                    className="bg-secondary p-2 rounded cursor-move"
+                    onClick={() => handleCourseClick(course, 'completedCourses')}
+                    className="bg-secondary p-2 rounded cursor-move hover:bg-accent text-sm"
                   >
-                    {course.name}
+                    • {course.course_name} - {course.course_code}
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
+
+          <p className="mt-8 text-sm text-gray-500 italic">
+            This is not a substitution for seeing an SFSU counsellor. Please confirm with your counsellor that the schedule you have created here is a valid and acceptable fit for you.
+          </p>
         </>
       )}
     </div>
