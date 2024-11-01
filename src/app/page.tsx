@@ -68,19 +68,19 @@ export default function Component() {
     setLoading(true)
     setError(null)
     try {
-      const [coursesResponse, scheduleResponse] = await Promise.all([
+      const [coursesResponse] = await Promise.all([
         fetch(`/api/courses?majorId=${majorId}`),
-        fetch(`/api/recommended-schedule?majorId=${majorId}`)
+        // fetch(`/api/recommended-schedule?majorId=${majorId}`)   replace const [coursesResponse, scheduleResponse]
       ])
 
       if (!coursesResponse.ok) throw new Error("Failed to fetch courses")
-      if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule")
+      // if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule")
 
       const coursesData = await coursesResponse.json() as Course[]
-      const scheduleData = await scheduleResponse.json() as RecommendedSemester[]
+      // const scheduleData = await scheduleResponse.json() as RecommendedSemester[]
 
       setAvailableCourses(coursesData)
-      setRecommendedSchedule(scheduleData)
+      // setRecommendedSchedule(scheduleData)
     } catch (error) {
       console.error("Error fetching major data:", error)
       setError("Failed to fetch major data. Please try again later.")
@@ -332,7 +332,7 @@ export default function Component() {
               <CardContent>
                 {loading ? (
                   <p>Loading recommended schedule...</p>
-                ) :   recommendedSchedule.length === 0 ? (
+                ) :    recommendedSchedule.length === 0 ? (
                   <p>No recommended schedule available for this major.</p>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">

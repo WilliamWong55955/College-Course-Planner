@@ -10,9 +10,9 @@ export async function GET() {
       .select({
         id: courses.id,
         course_code: courses.course_code,
-        course_name: courses.course_name,
+        title: courses.title,
         units: courses.units,
-        department: courses.department,
+        degree: courses.degree,
       })
       .from(courses);
 

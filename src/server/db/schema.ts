@@ -1,52 +1,40 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
-
-// import { sql } from "drizzle-orm";
 import {
   pgTableCreator,
   serial,
   varchar,
-  integer,
 } from "drizzle-orm/pg-core";
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
 export const createTable = pgTableCreator((name) => `t3willdevtop_${name}`);
 
 export const courses = createTable(
   "courses", {
-  id: serial("id").primaryKey(),
-  course_code: varchar("course_code", { length: 20 }).notNull(),
-  title: varchar("course_name", { length: 255 }).notNull(),
-  units: integer("units").notNull(),
-  degree: varchar("degree", { length: 255 }),
+    id: serial("id").primaryKey(),
+    course_code: varchar("course_code", { length: 20 }).notNull(),
+    title: varchar("title", { length: 225 }).notNull(),
+    units: varchar("units", { length: 225 }).notNull(),
+    degree: varchar("degree", { length: 255 }).notNull(),
 });
 
 
 export const majors = createTable(
   "majors", 
   {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  //department: varchar("department", { length: 255 }), // department was prefix code prior to change
-});
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull().unique(),
+  }
+);
 
-export const requirements = createTable("requirements", {
-  id: serial("id").primaryKey(),
-  major_id: integer("major_id").references(() => majors.id),
-  course_id: integer("course_id").references(() => courses.id),
-  requirement_type: varchar("requirement_type", { length: 50 }),
-});
+export const roadmap = createTable(
+  "roadmap", 
+  {
+    id: serial("id").primaryKey(),
+    major: varchar("major", { length: 255 }).notNull(),
+    semester: varchar("semester", { length: 255 }).notNull(),
+    course_code: varchar("course_code", { length: 255 }).notNull(),
+    units: varchar("units", { length: 255 }).notNull(),
+  }
+);
 
-export const roadmap = createTable("roadmap", {
-  id: serial("id").primaryKey(),
-  major_id: integer("major_id").references(() => majors.id),
-  course_id: integer("course_id").references(() => courses.id),
-  semester: varchar("semester", { length: 20 }),
-  sequence: integer("sequence"),
-});
 
