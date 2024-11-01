@@ -23,7 +23,7 @@ export const courses = createTable(
   course_code: varchar("course_code", { length: 20 }).notNull(),
   title: varchar("course_name", { length: 255 }).notNull(),
   units: integer("units").notNull(),
-  department: varchar("department", { length: 255 }),
+  degree: varchar("degree", { length: 255 }),
 });
 
 

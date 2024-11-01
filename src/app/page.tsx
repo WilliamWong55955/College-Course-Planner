@@ -18,21 +18,14 @@ type Course = {
 
 type Semester = { id: string; name: string; courses: Course[] }
 
-const semesterSuggestions = [
-  'Fall 2024', 'Spring 2025', 'Summer 2025',
-  'Fall 2025', 'Spring 2026', 'Summer 2026'
-]
+type RecommendedSemester = {
+  semester: number;
+  courses: string[];
+}
 
-// Placeholder recommended schedule
-const recommendedSchedule = [
-  { semester: 1, courses: ['CSC 101', 'ENG 114', 'MATH 226', 'GE Area A', 'GE Area A'] },
-  { semester: 2, courses: ['CSC 215', 'MATH 227', 'PHYS 220 & PHYS 222', 'GE Area E'] },
-  { semester: 3, courses: ['CSC 220', 'CSC 230', 'MATH 225', 'PHYS 230 & PHYS 232', 'GE Area C'] },
-  { semester: 4, courses: ['CSC 256', 'CSC 340', 'MATH 324', 'GE Area B2', 'GE Area C'] },
-  { semester: 5, courses: ['CSC 300GW', 'CSC 317', 'CSC 510', 'GE Area C', 'GE Area D'] },
-  { semester: 6, courses: ['CSC 413', 'CSC 415', 'Major Elective', 'GE Area D', 'GE Area F'] },
-  { semester: 7, courses: ['Major Elective', 'Major Elective', 'GE Area UD-C', 'GE Area UD-D', 'SF State Studies'] },
-  { semester: 8, courses: ['CSC 648', 'Major Elective', 'Major Elective', 'U.S. and California Government', 'GE Area UD-B'] },
+const semesterSuggestions = [
+  'Fall 2024', 'Winter 2024', 'Spring 2025', 'Summer 2025',
+  'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026'
 ]
 
 export default function Component() {
@@ -45,30 +38,13 @@ export default function Component() {
   ])
   const [availableCourses, setAvailableCourses] = useState<Course[]>([])
   const [completedCourses, setCompletedCourses] = useState<Course[]>([])
+  const [recommendedSchedule, setRecommendedSchedule] = useState<RecommendedSemester[]>([])
   const draggedCourse = useRef<{ course: Course, source: string } | null>(null)
 
-  const [courseData, setCourseData] = useState<Course[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+  const [loading, setLoading] = useState<boolean>(false)
   const [majorsData, setMajorsData] = useState<{ id: number; name: string }[]>([])
   const [loadingMajors, setLoadingMajors] = useState<boolean>(true)
-
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch('/api/courses')
-        if (!response.ok) throw new Error("Failed to fetch courses")
-        const data = await response.json() as Course[]
-        setCourseData(data)
-        setAvailableCourses(data)
-      } catch (error) {
-        console.error("Error fetching courses:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void fetchCourses()
-  }, [])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchMajors = async () => {
@@ -79,6 +55,7 @@ export default function Component() {
         setMajorsData(data)
       } catch (error) {
         console.error("Error fetching majors:", error)
+        setError("Failed to fetch majors. Please try again later.")
       } finally {
         setLoadingMajors(false)
       }
@@ -86,6 +63,33 @@ export default function Component() {
   
     void fetchMajors()
   }, [])
+
+  const fetchMajorData = async (majorId: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [coursesResponse, scheduleResponse] = await Promise.all([
+        fetch(`/api/courses?majorId=${majorId}`),
+        fetch(`/api/recommended-schedule?majorId=${majorId}`)
+      ])
+
+      if (!coursesResponse.ok) throw new Error("Failed to fetch courses")
+      if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule")
+
+      const coursesData = await coursesResponse.json() as Course[]
+      const scheduleData = await scheduleResponse.json() as RecommendedSemester[]
+
+      setAvailableCourses(coursesData)
+      setRecommendedSchedule(scheduleData)
+    } catch (error) {
+      console.error("Error fetching major data:", error)
+      setError("Failed to fetch major data. Please try again later.")
+      setAvailableCourses([])
+      setRecommendedSchedule([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleMajorChange = (majorId: string) => {
     setSelectedMajor(majorId)
@@ -96,7 +100,7 @@ export default function Component() {
       { id: 'semester3', name: '', courses: [] },
       { id: 'semester4', name: '', courses: [] },
     ])
-    setAvailableCourses(courseData) // Reset available courses when changing major
+    void fetchMajorData(majorId)
   }
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
@@ -176,7 +180,14 @@ export default function Component() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Course Planner</h1>
-      
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      )}
+
       {loadingMajors ? (
         <p>Loading majors...</p>
       ) : (
@@ -201,6 +212,8 @@ export default function Component() {
             <CardContent>
               {loading ? (
                 <p>Loading courses...</p>
+              ) : availableCourses.length === 0 ? (
+                <p>No courses available for this major.</p>
               ) : (
                 <div 
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
@@ -317,19 +330,24 @@ export default function Component() {
                 <CardTitle>Recommended Schedule</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {recommendedSchedule.map((semester) => (
-                    <div key={semester.semester} className="bg-secondary p-2 rounded-lg">
-                      <h3 className="font-semibold text-sm mb-1">Semester {semester.semester}</h3>
-                      <ul className="text-sm space-y-1">
-                        {semester.courses.map((course, index) => (
-                          <li key={index}>• {course}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              
+                {loading ? (
+                  <p>Loading recommended schedule...</p>
+                ) :   recommendedSchedule.length === 0 ? (
+                  <p>No recommended schedule available for this major.</p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {recommendedSchedule.map((semester) => (
+                      <div key={semester.semester} className="bg-secondary p-2 rounded-lg">
+                        <h3 className="font-semibold text-sm mb-1">Semester {semester.semester}</h3>
+                        <ul className="text-sm space-y-1">
+                          {semester.courses.map((course, index) => (
+                            <li key={index}>• {course}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
