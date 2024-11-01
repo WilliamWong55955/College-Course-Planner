@@ -33,4 +33,6 @@ REAL TO DO THIS:
 [] have the majors database incorporated into the dropdown menu
 [] make the semesters boxes adjust based on the height of the boxes being dragged in
 [] fix the complete courses bug
+[] finish scraping data
+[] add scraped data into the database
 [] 

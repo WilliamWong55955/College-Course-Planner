@@ -7,174 +7,224 @@ import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { PlusCircle, MinusCircle, Edit2 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
-import { type Course } from "~/server/db/types"
 
-// Define Semester and Recommended Roadmap Types
-type Semester = { id: string; name: string; courses: Course[] };
-type RoadmapSemester = { semester: number; courses: string[] };
+// Mock data
+const majors = [
+  { id: 'cs', name: 'Computer Science' },
+  { id: 'ee', name: 'Electrical Engineering' },
+]
+
+const courses = {
+  cs: [
+    { id: 'cs101', name: 'Introduction to Programming' },
+    { id: 'cs201', name: 'Data Structures' },
+    { id: 'cs301', name: 'Algorithms' },
+    { id: 'cs401', name: 'Database Systems' },
+    { id: 'cs501', name: 'Artificial Intelligence' },
+  ],
+  ee: [
+    { id: 'ee101', name: 'Circuit Analysis' },
+    { id: 'ee201', name: 'Digital Logic Design' },
+    { id: 'ee301', name: 'Signals and Systems' },
+    { id: 'ee401', name: 'Electromagnetic Fields' },
+    { id: 'ee501', name: 'Control Systems' },
+  ],
+}
+
+const recommendedRoadmap = {
+  cs: [
+    { semester: 1, courses: ['cs101'] },
+    { semester: 2, courses: ['cs201'] },
+    { semester: 3, courses: ['cs301', 'cs401'] },
+    { semester: 4, courses: ['cs501'] },
+  ],
+  ee: [
+    { semester: 1, courses: ['ee101'] },
+    { semester: 2, courses: ['ee201'] },
+    { semester: 3, courses: ['ee301', 'ee401'] },
+    { semester: 4, courses: ['ee501'] },
+  ],
+}
+
+type Course = { id: string; name: string }
+type Semester = { id: string; name: string; courses: Course[] }
 
 const semesterSuggestions = [
   'Fall 2024', 'Winter 2024', 'Spring 2025', 'Summer 2025',
   'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026'
-];
+]
 
 export default function Component() {
-  const [selectedMajor, setSelectedMajor] = useState<string | undefined>();
+  const [selectedMajor, setSelectedMajor] = useState<string | undefined>()
   const [semesters, setSemesters] = useState<Semester[]>([
     { id: 'semester1', name: '', courses: [] },
     { id: 'semester2', name: '', courses: [] },
     { id: 'semester3', name: '', courses: [] },
     { id: 'semester4', name: '', courses: [] },
-  ]);
+  ])
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([])
+  const [completedCourses, setCompletedCourses] = useState<Course[]>([])
+  const draggedCourse = useRef<{ course: Course, source: string } | null>(null)
 
-  const [majors, setMajors] = useState<{ id: string; name: string }[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
-  const [completedCourses, setCompletedCourses] = useState<Course[]>([]);
-  const [recommendedRoadmap, setRecommendedRoadmap] = useState<RoadmapSemester[]>([]);
-  const draggedCourse = useRef<{ course: Course, source: string } | null>(null);
-
-  useEffect(() => {
-    // Fetch majors when component mounts
-    const fetchMajors = async () => {
-      try {
-        const response = await fetch('/api/majors');
-        if (!response.ok) throw new Error('Failed to fetch majors');
-        const data = await response.json();
-        setMajors(data);
-      } catch (error) {
-        console.error('Error fetching majors:', error);
-      }
-    };
-    void fetchMajors();
-  }, []);
-
-  useEffect(() => {
-    // Fetch recommended roadmap based on selected major
-    if (!selectedMajor) return;
-
-    const fetchRoadmap = async () => {
-      try {
-        const response = await fetch(`/api/roadmap?major=${selectedMajor}`);
-        if (!response.ok) throw new Error('Failed to fetch roadmap');
-        const data: RoadmapSemester[] = await response.json();
-        setRecommendedRoadmap(data);
-      } catch (error) {
-        console.error('Error fetching roadmap:', error);
-      }
-    };
-
-    void fetchRoadmap();
-  }, [selectedMajor]);
-
-  useEffect(() => {
-    // Fetch available courses based on selected major
-    if (!selectedMajor) return;
-
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch(`/api/courses?major=${selectedMajor}`);
-        if (!response.ok) throw new Error('Failed to fetch courses');
-        const data: Course[] = await response.json();
-        setAvailableCourses(data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      }
-    };
-
-    void fetchCourses();
-  }, [selectedMajor]);
-
-  const handleMajorChange = async (majorId: string) => {
-    setSelectedMajor(majorId);
-    setCompletedCourses([]);
+  const handleMajorChange = (majorId: string) => {
+    setSelectedMajor(majorId)
+    setAvailableCourses(courses[majorId as keyof typeof courses])
+    setCompletedCourses([])
     setSemesters([
       { id: 'semester1', name: '', courses: [] },
       { id: 'semester2', name: '', courses: [] },
       { id: 'semester3', name: '', courses: [] },
       { id: 'semester4', name: '', courses: [] },
-    ]);
-
-    try {
-      const response = await fetch(`/api/courses?major=${majorId}`);
-      if (!response.ok) throw new Error('Failed to fetch courses');
-      const data: Course[] = await response.json();
-      setAvailableCourses(data);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    }
-  };
+    ])
+  }
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
-    draggedCourse.current = { course, source };
-    e.dataTransfer.setData('text/plain', course.id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+    draggedCourse.current = { course, source }
+    e.dataTransfer.setData('text/plain', course.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-    e.preventDefault();
+    e.preventDefault()
     if (draggedCourse.current) {
-      const { course, source } = draggedCourse.current;
+      const { course, source } = draggedCourse.current
 
-      if (source === targetId) return;
+      if (source === targetId) return
 
       // Remove course from source
       if (source === 'availableCourses') {
-        setAvailableCourses(prev => prev.filter(c => c.id !== course.id));
+        setAvailableCourses(prev => prev.filter(c => c.id !== course.id))
       } else if (source === 'completedCourses') {
-        setCompletedCourses(prev => prev.filter(c => c.id !== course.id));
+        setCompletedCourses(prev => prev.filter(c => c.id !== course.id))
       } else {
         setSemesters(prev => prev.map(sem => 
           sem.id === source ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
-        ));
+        ))
       }
 
       // Add course to target
       if (targetId === 'availableCourses') {
-        setAvailableCourses(prev => [...prev, course]);
+        setAvailableCourses(prev => [...prev, course])
       } else if (targetId === 'completedCourses') {
-        setCompletedCourses(prev => [...prev, course]);
+        setCompletedCourses(prev => [...prev, course])
       } else {
         setSemesters(prev => prev.map(sem => 
           sem.id === targetId ? { ...sem, courses: [...sem.courses, course] } : sem
-        ));
+        ))
       }
 
-      draggedCourse.current = null;
+      draggedCourse.current = null
     }
-  };
+  }
 
   const handleCourseClick = (course: Course, semesterId: string) => {
     setSemesters(prev => prev.map(sem => 
       sem.id === semesterId ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
-    ));
-    setAvailableCourses(prev => [...prev, course]);
-  };
+    ))
+    setAvailableCourses(prev => [...prev, course])
+  }
 
   const addSemester = () => {
-    setSemesters(prev => [...prev, { id: `semester${prev.length + 1}`, name: '', courses: [] }]);
-  };
+    setSemesters(prev => [...prev, { id: `semester${prev.length + 1}`, name: '', courses: [] }])
+  }
 
   const removeSemester = () => {
     if (semesters.length > 1) {
-      const lastSemester = semesters[semesters.length - 1]!;
-      setAvailableCourses(prev => [...prev, ...lastSemester.courses]);
-      setSemesters(prev => prev.slice(0, -1));
+      const lastSemester = semesters[semesters.length - 1]
+      setAvailableCourses(prev => [...prev, ...lastSemester.courses])
+      setSemesters(prev => prev.slice(0, -1))
     }
-  };
+  }
 
   const renameSemester = (semesterId: string, newName: string) => {
     setSemesters(prev => prev.map(sem => 
       sem.id === semesterId ? { ...sem, name: newName } : sem
-    ));
-  };
+    ))
+  }
+
+const [courseData, setCourseData] = useState<Course[]>([]);
+const [loading, setLoading] = useState<boolean>(true);
+  // Fetch course data when the component mounts
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/api/courses'); // Fetch from the API route
+        if (!response.ok) throw new Error("Failed to fetch courses");
+        const data = (await response.json()) as Course[];
+        setCourseData(data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchCourses();
+  }, []);
+
+const [majorsData, setMajorsData] = useState<{ id: number; name: string }[]>([]);
+const [loadingMajors, setLoadingMajors] = useState<boolean>(true);
+
+  // Fetch majors data when the component mounts
+  useEffect(() => {
+    const fetchMajors = async () => {
+      try {
+        const response = await fetch('/api/majors'); // API endpoint for majors data
+        if (!response.ok) throw new Error("Failed to fetch majors");
+        const data = (await response.json()) as { id: number; name: string }[];
+        setMajorsData(data);
+      } catch (error) {
+        console.error("Error fetching majors:", error);
+      } finally {
+        setLoadingMajors(false);
+      }
+    };
+  
+    void fetchMajors();
+  }, []);
+
 
   return (
     <div className="container mx-auto p-4">
+      {loading ? (
+        <p>Loading courses...</p>
+      ) : (
+        <div className="flex flex-wrap gap-4">
+          {courseData.length === 0 ? (
+            <p>No courses available.</p>
+          ) : (
+            courseData.map(course => (
+              <div key={course.id} className="p-4 border rounded shadow">
+                <h2>{course.course_name}</h2>
+                <p>Code: {course.course_code}</p>
+                <p>Units: {course.units}</p>
+                <p>Department: {course.department ?? "N/A"}</p>
+              </div>
+            ))
+          )}
+        </div>
+        )}
+        {loadingMajors ? (
+          <p>Loading majors...</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {majorsData.length === 0 ? (
+              <p>No majors available.</p>
+            ) : (
+              majorsData.map(major => (
+                <div key={major.id} className="p-4 border rounded shadow">
+                  <h2>{major.name}</h2>
+                  <p>ID: {major.id}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       <h1 className="text-2xl font-bold mb-4">Course Planner</h1>
       <Select onValueChange={handleMajorChange}>
         <SelectTrigger className="w-[180px] mb-4">
@@ -262,7 +312,7 @@ export default function Component() {
                         onClick={() => handleCourseClick(course, semester.id)}
                         className="bg-background p-2 mb-2 rounded cursor-move hover:bg-accent"
                       >
-                        {course.course_name}
+                        {course.name}
                       </div>
                     ))}
                   </div>
@@ -275,13 +325,13 @@ export default function Component() {
                 <CardTitle>Recommended Roadmap</CardTitle>
               </CardHeader>
               <CardContent>
-                {recommendedRoadmap.map((semester) => (
+                {recommendedRoadmap[selectedMajor as keyof typeof recommendedRoadmap].map((semester) => (
                   <div key={semester.semester} className="mb-4">
                     <h3 className="font-semibold mb-2">Semester {semester.semester}</h3>
                     <ul className="list-disc pl-5">
                       {semester.courses.map((courseId) => (
                         <li key={courseId}>
-                          {availableCourses.find(c => c.id === courseId)?.name || 'Unknown Course'}
+                          {courses[selectedMajor as keyof typeof courses].find(c => c.id === courseId)?.name}
                         </li>
                       ))}
                     </ul>
@@ -296,29 +346,21 @@ export default function Component() {
               <CardTitle>Available Courses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div
+              <div 
                 className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
                 onDragOver={onDragOver}
                 onDrop={(e) => onDrop(e, 'availableCourses')}
               >
-                {availableCourses.length === 0 ? (
-                  <p>No courses available.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-4">
-                    {availableCourses.map((course) => (
-                      <div
-                        key={course.id}
-                        draggable
-                        onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
-                        className="p-4 border rounded shadow cursor-move"
-                      >
-                        <p>{course.course_name}</p>
-                        <p>{course.course_code}</p>
-                        <p>Units: {course.units}</p>
-                      </div>
-                    ))}
+                {availableCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
+                    className="bg-secondary p-2 rounded cursor-move"
+                  >
+                    {course.name}
                   </div>
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -340,7 +382,7 @@ export default function Component() {
                     onDragStart={(e) => onDragStart(e, course, 'completedCourses')}
                     className="bg-secondary p-2 rounded cursor-move"
                   >
-                    {course.course_name}
+                    {course.name}
                   </div>
                 ))}
               </div>
@@ -349,5 +391,5 @@ export default function Component() {
         </>
       )}
     </div>
-  );
+  )
 }
