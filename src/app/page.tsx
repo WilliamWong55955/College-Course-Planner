@@ -25,14 +25,14 @@ const semesterSuggestions = [
 
 // Placeholder recommended schedule
 const recommendedSchedule = [
-  { semester: 1, courses: ['MATH101', 'PHYS101', 'CHEM101', 'ENG101', 'CS101'] },
-  { semester: 2, courses: ['MATH102', 'PHYS102', 'CHEM102', 'CS102', 'HIST101'] },
-  { semester: 3, courses: ['MATH201', 'CS201', 'ECON101', 'PHIL101', 'ART101'] },
-  { semester: 4, courses: ['MATH202', 'CS202', 'ECON102', 'PSYCH101', 'LANG101'] },
-  { semester: 5, courses: ['CS301', 'CS302', 'STAT201', 'BIO101', 'LANG102'] },
-  { semester: 6, courses: ['CS303', 'CS304', 'STAT202', 'BIO102', 'MUSIC101'] },
-  { semester: 7, courses: ['CS401', 'CS402', 'PROJ401', 'ENVS101', 'POLI101'] },
-  { semester: 8, courses: ['CS403', 'CS404', 'PROJ402', 'ENVS102', 'SOC101'] },
+  { semester: 1, courses: ['CSC 101', 'ENG 114', 'MATH 226', 'GE Area A', 'GE Area A'] },
+  { semester: 2, courses: ['CSC 215', 'MATH 227', 'PHYS 220 & PHYS 222', 'GE Area E'] },
+  { semester: 3, courses: ['CSC 220', 'CSC 230', 'MATH 225', 'PHYS 230 & PHYS 232', 'GE Area C'] },
+  { semester: 4, courses: ['CSC 256', 'CSC 340', 'MATH 324', 'GE Area B2', 'GE Area C'] },
+  { semester: 5, courses: ['CSC 300GW', 'CSC 317', 'CSC 510', 'GE Area C', 'GE Area D'] },
+  { semester: 6, courses: ['CSC 413', 'CSC 415', 'Major Elective', 'GE Area D', 'GE Area F'] },
+  { semester: 7, courses: ['Major Elective', 'Major Elective', 'GE Area UD-C', 'GE Area UD-D', 'SF State Studies'] },
+  { semester: 8, courses: ['CSC 648', 'Major Elective', 'Major Elective', 'U.S. and California Government', 'GE Area UD-B'] },
 ]
 
 export default function Component() {
@@ -181,7 +181,7 @@ export default function Component() {
         <p>Loading majors...</p>
       ) : (
         <Select onValueChange={handleMajorChange}>
-          <SelectTrigger className="w-[180px] mb-4">
+          <SelectTrigger className="w-[450px] mb-4">
             <SelectValue placeholder="Select your major" />
           </SelectTrigger>
           <SelectContent>
