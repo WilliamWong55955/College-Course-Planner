@@ -46,6 +46,7 @@ export default function Component() {
   const [loadingMajors, setLoadingMajors] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Function to fetch all available majors
   useEffect(() => {
     const fetchMajors = async () => {
       try {
@@ -64,23 +65,40 @@ export default function Component() {
     void fetchMajors()
   }, [])
 
+  // Function to fetch course and roadmap data for a selected major
   const fetchMajorData = async (degreeName: string) => {
     setLoading(true);
     setError(null);
+  
     try {
-      const [coursesResponse] = await Promise.all([
+      const [coursesResponse, scheduleResponse] = await Promise.all([
         fetch(`/api/courses?degree=${encodeURIComponent(degreeName)}`),
-        // fetch(`/api/recommended-schedule?degree=${encodeURIComponent(degreeName)}`)
+        fetch(`/api/roadmap?major=${encodeURIComponent(degreeName)}`)
       ]);
-
+  
       if (!coursesResponse.ok) throw new Error("Failed to fetch courses");
-      // if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule");
-
+      if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule");
+  
       const coursesData = await coursesResponse.json() as Course[];
-      // const scheduleData = await scheduleResponse.json() as RecommendedSemester[];
-
+      const scheduleData = await scheduleResponse.json() as { semester: string, course_code: string, units: string }[];
+  
       setAvailableCourses(coursesData);
-      // setRecommendedSchedule(scheduleData);
+  
+      // Process the schedule data, replacing "N/A" course_code with "Degree Total"
+      const recommendedSchedule = scheduleData.reduce((acc: RecommendedSemester[], item) => {
+        // If course_code is "N/A", replace it with "Degree Total"
+        const courseCodeDisplay = item.course_code === "N/A" ? "Degree Total" : item.course_code;
+  
+        const semesterIndex = acc.findIndex(s => s.semester === item.semester);
+        if (semesterIndex !== -1) {
+          acc[semesterIndex].courses.push(`${courseCodeDisplay} (${item.units} units)`);
+        } else {
+          acc.push({ semester: item.semester, courses: [`${courseCodeDisplay} (${item.units} units)`] });
+        }
+        return acc;
+      }, []);
+  
+      setRecommendedSchedule(recommendedSchedule);
     } catch (error) {
       console.error("Error fetching major data:", error);
       setError("Failed to fetch major data. Please try again later.");
@@ -90,8 +108,10 @@ export default function Component() {
       setLoading(false);
     }
   };
+  
+  
 
-
+  // Function to handle major selection change
   const handleMajorChange = (majorId: string) => {
     const selectedMajorName = majorsData.find(major => major.id.toString() === majorId)?.name;
     if (!selectedMajorName) return;
@@ -104,8 +124,10 @@ export default function Component() {
       { id: 'semester3', name: '', courses: [] },
       { id: 'semester4', name: '', courses: [] },
     ]);
+    
+    // Call fetchMajorData here when a new major is selected
     void fetchMajorData(selectedMajorName);
-};
+  };
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
     draggedCourse.current = { course, source }

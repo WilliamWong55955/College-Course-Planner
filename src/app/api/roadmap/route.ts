@@ -1,22 +1,31 @@
 import { NextResponse } from 'next/server';
-import { db } from '~/server/db';
-import { roadmap } from '~/server/db/schema';
+import { db } from '~/server/db'; // Adjust path as needed
+import { roadmap } from '~/server/db/schema'; // Adjust path as needed
+import { eq } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const major = searchParams.get('major');
+
+  if (!major) {
+    return NextResponse.json({ error: "Major is required" }, { status: 400 });
+  }
+
   try {
-    const courseData = await db
+    const scheduleData = await db
       .select({
         id: roadmap.id,
+        major: roadmap.major,
+        semester: roadmap.semester,
         course_code: roadmap.course_code,
-        title: roadmap.major,
         units: roadmap.units,
-        degree: roadmap.semester,
       })
-      .from(roadmap);
+      .from(roadmap)
+      .where(eq(roadmap.major, major));
 
-    return NextResponse.json(courseData);
+    return NextResponse.json(scheduleData);
   } catch (error) {
-    console.error("Failed to fetch roadmap:", error);
-    return NextResponse.json({ error: "Failed to fetch roadmap" }, { status: 500 });
+    console.error("Failed to fetch recommended schedule:", error);
+    return NextResponse.json({ error: "Failed to fetch recommended schedule" }, { status: 500 });
   }
 }
