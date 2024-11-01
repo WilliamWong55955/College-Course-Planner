@@ -1,151 +1,177 @@
 "use client"
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { PlusCircle, MinusCircle, Edit2 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { type Course } from "~/server/db/types"
 
-// Mock data
-const majors = [
-  { id: 'cs', name: 'Computer Science' },
-  { id: 'ee', name: 'Electrical Engineering' },
-]
-
-const courses = {
-  cs: [
-    { id: 'cs101', name: 'Introduction to Programming' },
-    { id: 'cs201', name: 'Data Structures' },
-    { id: 'cs301', name: 'Algorithms' },
-    { id: 'cs401', name: 'Database Systems' },
-    { id: 'cs501', name: 'Artificial Intelligence' },
-  ],
-  ee: [
-    { id: 'ee101', name: 'Circuit Analysis' },
-    { id: 'ee201', name: 'Digital Logic Design' },
-    { id: 'ee301', name: 'Signals and Systems' },
-    { id: 'ee401', name: 'Electromagnetic Fields' },
-    { id: 'ee501', name: 'Control Systems' },
-  ],
-}
-
-const recommendedRoadmap = {
-  cs: [
-    { semester: 1, courses: ['cs101'] },
-    { semester: 2, courses: ['cs201'] },
-    { semester: 3, courses: ['cs301', 'cs401'] },
-    { semester: 4, courses: ['cs501'] },
-  ],
-  ee: [
-    { semester: 1, courses: ['ee101'] },
-    { semester: 2, courses: ['ee201'] },
-    { semester: 3, courses: ['ee301', 'ee401'] },
-    { semester: 4, courses: ['ee501'] },
-  ],
-}
-
-type Course = { id: string; name: string }
-type Semester = { id: string; name: string; courses: Course[] }
+// Define Semester and Recommended Roadmap Types
+type Semester = { id: string; name: string; courses: Course[] };
+type RoadmapSemester = { semester: number; courses: string[] };
 
 const semesterSuggestions = [
   'Fall 2024', 'Winter 2024', 'Spring 2025', 'Summer 2025',
   'Fall 2025', 'Winter 2025', 'Spring 2026', 'Summer 2026'
-]
+];
 
 export default function Component() {
-  const [selectedMajor, setSelectedMajor] = useState<string | undefined>()
+  const [selectedMajor, setSelectedMajor] = useState<string | undefined>();
   const [semesters, setSemesters] = useState<Semester[]>([
     { id: 'semester1', name: '', courses: [] },
     { id: 'semester2', name: '', courses: [] },
     { id: 'semester3', name: '', courses: [] },
     { id: 'semester4', name: '', courses: [] },
-  ])
-  const [availableCourses, setAvailableCourses] = useState<Course[]>([])
-  const [completedCourses, setCompletedCourses] = useState<Course[]>([])
-  const draggedCourse = useRef<{ course: Course, source: string } | null>(null)
+  ]);
 
-  const handleMajorChange = (majorId: string) => {
-    setSelectedMajor(majorId)
-    setAvailableCourses(courses[majorId as keyof typeof courses])
-    setCompletedCourses([])
+  const [majors, setMajors] = useState<{ id: string; name: string }[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  const [completedCourses, setCompletedCourses] = useState<Course[]>([]);
+  const [recommendedRoadmap, setRecommendedRoadmap] = useState<RoadmapSemester[]>([]);
+  const draggedCourse = useRef<{ course: Course, source: string } | null>(null);
+
+  useEffect(() => {
+    // Fetch majors when component mounts
+    const fetchMajors = async () => {
+      try {
+        const response = await fetch('/api/majors');
+        if (!response.ok) throw new Error('Failed to fetch majors');
+        const data = await response.json();
+        setMajors(data);
+      } catch (error) {
+        console.error('Error fetching majors:', error);
+      }
+    };
+    void fetchMajors();
+  }, []);
+
+  useEffect(() => {
+    // Fetch recommended roadmap based on selected major
+    if (!selectedMajor) return;
+
+    const fetchRoadmap = async () => {
+      try {
+        const response = await fetch(`/api/roadmap?major=${selectedMajor}`);
+        if (!response.ok) throw new Error('Failed to fetch roadmap');
+        const data: RoadmapSemester[] = await response.json();
+        setRecommendedRoadmap(data);
+      } catch (error) {
+        console.error('Error fetching roadmap:', error);
+      }
+    };
+
+    void fetchRoadmap();
+  }, [selectedMajor]);
+
+  useEffect(() => {
+    // Fetch available courses based on selected major
+    if (!selectedMajor) return;
+
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch(`/api/courses?major=${selectedMajor}`);
+        if (!response.ok) throw new Error('Failed to fetch courses');
+        const data: Course[] = await response.json();
+        setAvailableCourses(data);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
+    };
+
+    void fetchCourses();
+  }, [selectedMajor]);
+
+  const handleMajorChange = async (majorId: string) => {
+    setSelectedMajor(majorId);
+    setCompletedCourses([]);
     setSemesters([
       { id: 'semester1', name: '', courses: [] },
       { id: 'semester2', name: '', courses: [] },
       { id: 'semester3', name: '', courses: [] },
       { id: 'semester4', name: '', courses: [] },
-    ])
-  }
+    ]);
+
+    try {
+      const response = await fetch(`/api/courses?major=${majorId}`);
+      if (!response.ok) throw new Error('Failed to fetch courses');
+      const data: Course[] = await response.json();
+      setAvailableCourses(data);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
-    draggedCourse.current = { course, source }
-    e.dataTransfer.setData('text/plain', course.id)
-    e.dataTransfer.effectAllowed = 'move'
-  }
+    draggedCourse.current = { course, source };
+    e.dataTransfer.setData('text/plain', course.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-    e.preventDefault()
+    e.preventDefault();
     if (draggedCourse.current) {
-      const { course, source } = draggedCourse.current
+      const { course, source } = draggedCourse.current;
 
-      if (source === targetId) return
+      if (source === targetId) return;
 
       // Remove course from source
       if (source === 'availableCourses') {
-        setAvailableCourses(prev => prev.filter(c => c.id !== course.id))
+        setAvailableCourses(prev => prev.filter(c => c.id !== course.id));
       } else if (source === 'completedCourses') {
-        setCompletedCourses(prev => prev.filter(c => c.id !== course.id))
+        setCompletedCourses(prev => prev.filter(c => c.id !== course.id));
       } else {
         setSemesters(prev => prev.map(sem => 
           sem.id === source ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
-        ))
+        ));
       }
 
       // Add course to target
       if (targetId === 'availableCourses') {
-        setAvailableCourses(prev => [...prev, course])
+        setAvailableCourses(prev => [...prev, course]);
       } else if (targetId === 'completedCourses') {
-        setCompletedCourses(prev => [...prev, course])
+        setCompletedCourses(prev => [...prev, course]);
       } else {
         setSemesters(prev => prev.map(sem => 
           sem.id === targetId ? { ...sem, courses: [...sem.courses, course] } : sem
-        ))
+        ));
       }
 
-      draggedCourse.current = null
+      draggedCourse.current = null;
     }
-  }
+  };
 
   const handleCourseClick = (course: Course, semesterId: string) => {
     setSemesters(prev => prev.map(sem => 
       sem.id === semesterId ? { ...sem, courses: sem.courses.filter(c => c.id !== course.id) } : sem
-    ))
-    setAvailableCourses(prev => [...prev, course])
-  }
+    ));
+    setAvailableCourses(prev => [...prev, course]);
+  };
 
   const addSemester = () => {
-    setSemesters(prev => [...prev, { id: `semester${prev.length + 1}`, name: '', courses: [] }])
-  }
+    setSemesters(prev => [...prev, { id: `semester${prev.length + 1}`, name: '', courses: [] }]);
+  };
 
   const removeSemester = () => {
     if (semesters.length > 1) {
       const lastSemester = semesters[semesters.length - 1]!;
-      setAvailableCourses(prev => [...prev, ...lastSemester.courses])
-      setSemesters(prev => prev.slice(0, -1))
+      setAvailableCourses(prev => [...prev, ...lastSemester.courses]);
+      setSemesters(prev => prev.slice(0, -1));
     }
-  }
+  };
 
   const renameSemester = (semesterId: string, newName: string) => {
     setSemesters(prev => prev.map(sem => 
       sem.id === semesterId ? { ...sem, name: newName } : sem
-    ))
-  }
+    ));
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -236,7 +262,7 @@ export default function Component() {
                         onClick={() => handleCourseClick(course, semester.id)}
                         className="bg-background p-2 mb-2 rounded cursor-move hover:bg-accent"
                       >
-                        {course.name}
+                        {course.course_name}
                       </div>
                     ))}
                   </div>
@@ -249,13 +275,13 @@ export default function Component() {
                 <CardTitle>Recommended Roadmap</CardTitle>
               </CardHeader>
               <CardContent>
-                {recommendedRoadmap[selectedMajor as keyof typeof recommendedRoadmap].map((semester) => (
+                {recommendedRoadmap.map((semester) => (
                   <div key={semester.semester} className="mb-4">
                     <h3 className="font-semibold mb-2">Semester {semester.semester}</h3>
                     <ul className="list-disc pl-5">
                       {semester.courses.map((courseId) => (
                         <li key={courseId}>
-                          {courses[selectedMajor as keyof typeof courses].find(c => c.id === courseId)?.name}
+                          {availableCourses.find(c => c.id === courseId)?.name || 'Unknown Course'}
                         </li>
                       ))}
                     </ul>
@@ -270,21 +296,29 @@ export default function Component() {
               <CardTitle>Available Courses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div 
+              <div
                 className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 min-h-[100px]"
                 onDragOver={onDragOver}
                 onDrop={(e) => onDrop(e, 'availableCourses')}
               >
-                {availableCourses.map((course) => (
-                  <div
-                    key={course.id}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
-                    className="bg-secondary p-2 rounded cursor-move"
-                  >
-                    {course.name}
+                {availableCourses.length === 0 ? (
+                  <p>No courses available.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-4">
+                    {availableCourses.map((course) => (
+                      <div
+                        key={course.id}
+                        draggable
+                        onDragStart={(e) => onDragStart(e, course, 'availableCourses')}
+                        className="p-4 border rounded shadow cursor-move"
+                      >
+                        <p>{course.course_name}</p>
+                        <p>{course.course_code}</p>
+                        <p>Units: {course.units}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -306,7 +340,7 @@ export default function Component() {
                     onDragStart={(e) => onDragStart(e, course, 'completedCourses')}
                     className="bg-secondary p-2 rounded cursor-move"
                   >
-                    {course.name}
+                    {course.course_name}
                   </div>
                 ))}
               </div>
@@ -315,5 +349,5 @@ export default function Component() {
         </>
       )}
     </div>
-  )
+  );
 }

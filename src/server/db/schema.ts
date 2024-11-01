@@ -32,7 +32,7 @@ export const majors = createTable(
   {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  department: varchar("prefix code", { length: 255 }),
+  department: varchar("department", { length: 255 }), // department was prefix code prior to change
 });
 
 export const requirements = createTable("requirements", {

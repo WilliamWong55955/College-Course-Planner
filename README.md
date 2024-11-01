@@ -24,3 +24,13 @@
  do next:
 "taint" (server-only)
 Error management (w/ Sentry)
+
+
+
+REAL TO DO THIS:
+
+[] have availiable courses be based on what the user selects as their major
+[] have the majors database incorporated into the dropdown menu
+[] make the semesters boxes adjust based on the height of the boxes being dragged in
+[] fix the complete courses bug
+[] 
