@@ -200,10 +200,8 @@ const [loadingMajors, setLoadingMajors] = useState<boolean>(true);
           ) : (
             courseData.map(course => (
               <div key={course.id} className="p-4 border rounded shadow">
-                <h2>{course.course_name}</h2>
+                <p>{course.title}</p>
                 <p>Code: {course.course_code}</p>
-                <p>Units: {course.units}</p>
-                <p>Department: {course.department ?? "N/A"}</p>
               </div>
             ))
           )}
