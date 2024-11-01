@@ -5,3 +5,5 @@ export interface Course {
     units: string;
     degree: string | null;
   }
+
+  
