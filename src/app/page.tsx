@@ -64,44 +64,48 @@ export default function Component() {
     void fetchMajors()
   }, [])
 
-  const fetchMajorData = async (majorId: string) => {
-    setLoading(true)
-    setError(null)
+  const fetchMajorData = async (degreeName: string) => {
+    setLoading(true);
+    setError(null);
     try {
       const [coursesResponse] = await Promise.all([
-        fetch(`/api/courses?majorId=${majorId}`),
-        // fetch(`/api/recommended-schedule?majorId=${majorId}`)   replace const [coursesResponse, scheduleResponse]
-      ])
+        fetch(`/api/courses?degree=${encodeURIComponent(degreeName)}`),
+        // fetch(`/api/recommended-schedule?degree=${encodeURIComponent(degreeName)}`)
+      ]);
 
-      if (!coursesResponse.ok) throw new Error("Failed to fetch courses")
-      // if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule")
+      if (!coursesResponse.ok) throw new Error("Failed to fetch courses");
+      // if (!scheduleResponse.ok) throw new Error("Failed to fetch recommended schedule");
 
-      const coursesData = await coursesResponse.json() as Course[]
-      // const scheduleData = await scheduleResponse.json() as RecommendedSemester[]
+      const coursesData = await coursesResponse.json() as Course[];
+      // const scheduleData = await scheduleResponse.json() as RecommendedSemester[];
 
-      setAvailableCourses(coursesData)
-      // setRecommendedSchedule(scheduleData)
+      setAvailableCourses(coursesData);
+      // setRecommendedSchedule(scheduleData);
     } catch (error) {
-      console.error("Error fetching major data:", error)
-      setError("Failed to fetch major data. Please try again later.")
-      setAvailableCourses([])
-      setRecommendedSchedule([])
+      console.error("Error fetching major data:", error);
+      setError("Failed to fetch major data. Please try again later.");
+      setAvailableCourses([]);
+      setRecommendedSchedule([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
 
   const handleMajorChange = (majorId: string) => {
-    setSelectedMajor(majorId)
-    setCompletedCourses([])
+    const selectedMajorName = majorsData.find(major => major.id.toString() === majorId)?.name;
+    if (!selectedMajorName) return;
+
+    setSelectedMajor(selectedMajorName);
+    setCompletedCourses([]);
     setSemesters([
       { id: 'semester1', name: '', courses: [] },
       { id: 'semester2', name: '', courses: [] },
       { id: 'semester3', name: '', courses: [] },
       { id: 'semester4', name: '', courses: [] },
-    ])
-    void fetchMajorData(majorId)
-  }
+    ]);
+    void fetchMajorData(selectedMajorName);
+};
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, course: Course, source: string) => {
     draggedCourse.current = { course, source }
