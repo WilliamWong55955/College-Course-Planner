@@ -18,6 +18,5 @@ A web app to help college students plan their course schedule, track graduation 
 
 https://t3willdevtop-ekg5depzb-code-jams-winners.vercel.app
 
-## Distribution
 
-if you want the code then have it, its dogwater anyways XD
+
